@@ -11,7 +11,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	findings := gt.R1(sarif.Parse("../../../testdata/sarif/semgrep-result.sarif")).NoError(t)
+	findings := gt.R1(sarif.Parse("../../../examples/sarif/semgrep-result.sarif")).NoError(t)
 	gt.Equal(t, len(findings), 5)
 
 	gt.Equal(t, findings[0].RuleID, "go.lang.security.audit.sqli.taint-sql-string-format")
