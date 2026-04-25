@@ -1,0 +1,135 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "semgrep",
+          "rules": [
+            {
+              "id": "go.lang.security.audit.sqli.taint-sql-string-format",
+              "shortDescription": {
+                "text": "Possible SQL injection via string formatting"
+              }
+            },
+            {
+              "id": "go.lang.security.audit.command-injection",
+              "shortDescription": {
+                "text": "Possible command injection"
+              }
+            },
+            {
+              "id": "go.lang.security.audit.xss.direct-response-write",
+              "shortDescription": {
+                "text": "Possible XSS via direct response write"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "go.lang.security.audit.sqli.taint-sql-string-format",
+          "level": "error",
+          "message": {
+            "text": "User-controlled data from `r.URL.Query().Get(\"name\")` is used in a SQL query string formatted with `fmt.Sprintf`. This could allow SQL injection."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pkg/db/query.go"
+                },
+                "region": {
+                  "startLine": 17,
+                  "endLine": 17
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "go.lang.security.audit.sqli.taint-sql-string-format",
+          "level": "error",
+          "message": {
+            "text": "String formatting used in SQL query with `fmt.Sprintf`. This could allow SQL injection."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pkg/db/query.go"
+                },
+                "region": {
+                  "startLine": 25,
+                  "endLine": 25
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "go.lang.security.audit.command-injection",
+          "level": "error",
+          "message": {
+            "text": "User-controlled data from `r.URL.Query().Get(\"host\")` is passed to `exec.Command`. This could allow command injection."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pkg/api/handler.go"
+                },
+                "region": {
+                  "startLine": 12,
+                  "endLine": 12
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "go.lang.security.audit.command-injection",
+          "level": "warning",
+          "message": {
+            "text": "Usage of `exec.Command` detected. Ensure arguments are not user-controlled."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pkg/api/handler.go"
+                },
+                "region": {
+                  "startLine": 22,
+                  "endLine": 22
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "go.lang.security.audit.xss.direct-response-write",
+          "level": "error",
+          "message": {
+            "text": "User-controlled data from `r.URL.Query().Get(\"name\")` is written directly to the HTTP response via `fmt.Fprintf`. This could allow XSS."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pkg/api/handler.go"
+                },
+                "region": {
+                  "startLine": 33,
+                  "endLine": 33
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
