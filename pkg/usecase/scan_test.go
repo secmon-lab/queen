@@ -64,8 +64,8 @@ func TestScanFullFlow(t *testing.T) {
 	)
 
 	session := gt.R1(uc.Scan(context.Background(),
-		"../../testdata/sarif/semgrep-result.sarif",
-		"../../testdata/sample-repo",
+		"../../examples/sarif/semgrep-result.sarif",
+		"../../examples/sample-repo",
 	)).NoError(t)
 
 	gt.Equal(t, len(session.Issues), 5)
@@ -82,7 +82,7 @@ func TestScanSARIFNotFound(t *testing.T) {
 		usecase.WithLLMClient(&mockLLMClient{}),
 	)
 
-	_, err := uc.Scan(context.Background(), "/nonexistent.sarif", "../../testdata/sample-repo")
+	_, err := uc.Scan(context.Background(), "/nonexistent.sarif", "../../examples/sample-repo")
 	gt.Error(t, err)
 }
 
@@ -91,7 +91,7 @@ func TestScanRepoNotFound(t *testing.T) {
 		usecase.WithLLMClient(&mockLLMClient{}),
 	)
 
-	_, err := uc.Scan(context.Background(), "../../testdata/sarif/semgrep-result.sarif", "/nonexistent/repo")
+	_, err := uc.Scan(context.Background(), "../../examples/sarif/semgrep-result.sarif", "/nonexistent/repo")
 	gt.Error(t, err)
 }
 
@@ -103,8 +103,8 @@ func TestScanLLMError(t *testing.T) {
 	)
 
 	session := gt.R1(uc.Scan(context.Background(),
-		"../../testdata/sarif/semgrep-result.sarif",
-		"../../testdata/sample-repo",
+		"../../examples/sarif/semgrep-result.sarif",
+		"../../examples/sample-repo",
 	)).NoError(t)
 
 	gt.Equal(t, len(session.Issues), 5)
