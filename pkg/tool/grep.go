@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/m-mizutani/goerr/v2"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -41,12 +42,12 @@ func (t *Grep) Spec() gollem.ToolSpec {
 func (t *Grep) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	pattern, _ := args["pattern"].(string)
 	if pattern == "" {
-		return nil, fmt.Errorf("pattern is required")
+		return nil, goerr.New("pattern is required")
 	}
 
 	repoAbs, err := filepath.Abs(t.repoPath)
 	if err != nil {
-		return nil, fmt.Errorf("invalid repo path: %w", err)
+		return nil, goerr.Wrap(err, "invalid repo path")
 	}
 
 	searchPath := repoAbs
@@ -54,10 +55,10 @@ func (t *Grep) Run(ctx context.Context, args map[string]any) (map[string]any, er
 		joined := filepath.Join(t.repoPath, p)
 		abs, err := filepath.Abs(joined)
 		if err != nil {
-			return nil, fmt.Errorf("invalid path: %w", err)
+			return nil, goerr.Wrap(err, "invalid path")
 		}
 		if !strings.HasPrefix(abs, repoAbs+string(filepath.Separator)) && abs != repoAbs {
-			return nil, fmt.Errorf("path traversal detected: %s", p)
+			return nil, goerr.New("path traversal detected", goerr.V("path", p))
 		}
 		searchPath = abs
 	}
@@ -105,7 +106,7 @@ func (t *Grep) Run(ctx context.Context, args map[string]any) (map[string]any, er
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory: %w", err)
+		return nil, goerr.Wrap(err, "failed to walk directory")
 	}
 
 	return map[string]any{

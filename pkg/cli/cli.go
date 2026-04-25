@@ -2,40 +2,27 @@ package cli
 
 import (
 	"context"
-	"log/slog"
-	"os"
 
+	"github.com/secmon-lab/queen/pkg/cli/config"
+	"github.com/secmon-lab/queen/pkg/utils/logging"
 	"github.com/urfave/cli/v3"
 )
 
 func Run(ctx context.Context, args []string) error {
-	var logLevel string
+	var logCfg config.Logger
 
 	app := &cli.Command{
 		Name:  "queen",
 		Usage: "An agentic SAST triage tool",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "log-level",
-				Usage:       "Log level (debug, info, warn, error)",
-				Value:       "info",
-				Sources:     cli.EnvVars("QUEEN_LOG_LEVEL"),
-				Destination: &logLevel,
-			},
-		},
+		Flags: logCfg.Flags(),
 		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
-			var level slog.Level
-			switch logLevel {
-			case "debug":
-				level = slog.LevelDebug
-			case "warn":
-				level = slog.LevelWarn
-			case "error":
-				level = slog.LevelError
-			default:
-				level = slog.LevelInfo
+			logger, closer, err := logCfg.Configure()
+			if err != nil {
+				return ctx, err
 			}
-			slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
+			_ = closer
+
+			ctx = logging.With(ctx, logger)
 			return ctx, nil
 		},
 		Commands: []*cli.Command{

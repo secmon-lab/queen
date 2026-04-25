@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"log/slog"
 	"os"
 	"time"
 
@@ -11,14 +10,19 @@ import (
 	"github.com/secmon-lab/queen/pkg/domain/types"
 	"github.com/secmon-lab/queen/pkg/service/sarif"
 	"github.com/secmon-lab/queen/pkg/service/triage"
+	"github.com/secmon-lab/queen/pkg/utils/logging"
 )
 
 func (u *UseCases) Scan(ctx context.Context, sarifPath, repoPath string) (*model.ScanSession, error) {
 	if _, err := os.Stat(sarifPath); err != nil {
-		return nil, goerr.Wrap(err, "SARIF file not accessible", goerr.V("path", sarifPath))
+		return nil, goerr.Wrap(err, "SARIF file not accessible",
+			goerr.TV(types.ErrKeyFilePath, sarifPath),
+		)
 	}
 	if _, err := os.Stat(repoPath); err != nil {
-		return nil, goerr.Wrap(err, "repository path not accessible", goerr.V("path", repoPath))
+		return nil, goerr.Wrap(err, "repository path not accessible",
+			goerr.TV(types.ErrKeyFilePath, repoPath),
+		)
 	}
 
 	session := &model.ScanSession{
@@ -39,6 +43,7 @@ func (u *UseCases) Scan(ctx context.Context, sarifPath, repoPath string) (*model
 		return nil, goerr.Wrap(err, "failed to parse SARIF")
 	}
 
+	log := logging.From(ctx)
 	triageSvc := triage.New(u.llmClient, u.tools...)
 
 	for _, finding := range findings {
@@ -50,10 +55,10 @@ func (u *UseCases) Scan(ctx context.Context, sarifPath, repoPath string) (*model
 
 		result, err := triageSvc.Triage(ctx, issue)
 		if err != nil {
-			slog.ErrorContext(ctx, "triage failed, skipping issue",
+			log.ErrorContext(ctx, "triage failed, skipping issue",
 				"issue_id", issue.ID,
 				"rule_id", finding.RuleID,
-				"error", err,
+				logging.ErrAttr(err),
 			)
 		} else {
 			issue.Triage = result
@@ -61,9 +66,9 @@ func (u *UseCases) Scan(ctx context.Context, sarifPath, repoPath string) (*model
 
 		if u.repository != nil {
 			if err := u.repository.PutIssue(ctx, issue); err != nil {
-				slog.ErrorContext(ctx, "failed to save issue",
+				log.ErrorContext(ctx, "failed to save issue",
 					"issue_id", issue.ID,
-					"error", err,
+					logging.ErrAttr(err),
 				)
 			}
 		}
