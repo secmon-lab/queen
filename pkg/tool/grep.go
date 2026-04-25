@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,10 +56,6 @@ func (t *Grep) Run(ctx context.Context, args map[string]any) (map[string]any, er
 		if err != nil {
 			return nil, fmt.Errorf("invalid path: %w", err)
 		}
-		repoAbs, err := filepath.Abs(t.repoPath)
-		if err != nil {
-			return nil, fmt.Errorf("invalid repo path: %w", err)
-		}
 		if !strings.HasPrefix(abs, repoAbs+string(filepath.Separator)) && abs != repoAbs {
 			return nil, fmt.Errorf("path traversal detected: %s", p)
 		}
@@ -66,14 +63,18 @@ func (t *Grep) Run(ctx context.Context, args map[string]any) (map[string]any, er
 	}
 
 	var results []string
-	err = filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(searchPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
-		if info.IsDir() {
-			if info.Name() == ".git" {
+		if d.IsDir() {
+			if skipDirs[d.Name()] {
 				return filepath.SkipDir
 			}
+			return nil
+		}
+		info, err := d.Info()
+		if err != nil {
 			return nil
 		}
 		if info.Size() > 1<<20 {

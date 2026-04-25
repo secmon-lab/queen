@@ -3,12 +3,20 @@ package tool
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"strings"
 
 	"github.com/m-mizutani/gollem"
 )
+
+const maxFindResults = 100
+
+var skipDirs = map[string]bool{
+	".git":         true,
+	"node_modules": true,
+	"vendor":       true,
+}
 
 type Find struct {
 	repoPath string
@@ -44,12 +52,12 @@ func (t *Find) Run(ctx context.Context, args map[string]any) (map[string]any, er
 	}
 
 	var matches []string
-	err = filepath.Walk(repoAbs, func(path string, info os.FileInfo, err error) error {
+	err = filepath.WalkDir(repoAbs, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
-		if info.IsDir() {
-			if info.Name() == ".git" {
+		if d.IsDir() {
+			if skipDirs[d.Name()] {
 				return filepath.SkipDir
 			}
 			return nil
@@ -60,39 +68,73 @@ func (t *Find) Run(ctx context.Context, args map[string]any) (map[string]any, er
 			return nil
 		}
 
-		matched, err := filepath.Match(pattern, rel)
-		if err == nil && matched {
+		if matchGlob(pattern, rel) {
 			matches = append(matches, rel)
-			return nil
-		}
-
-		matched, err = filepath.Match(pattern, filepath.Base(rel))
-		if err == nil && matched {
-			matches = append(matches, rel)
-			return nil
-		}
-
-		if strings.Contains(pattern, "**") {
-			globPattern := strings.ReplaceAll(pattern, "**", "*")
-			parts := strings.Split(rel, string(filepath.Separator))
-			for i := range parts {
-				subPath := filepath.Join(parts[i:]...)
-				matched, err = filepath.Match(globPattern, subPath)
-				if err == nil && matched {
-					matches = append(matches, rel)
-					return nil
-				}
+			if len(matches) >= maxFindResults {
+				return fmt.Errorf("result limit reached")
 			}
 		}
 
 		return nil
 	})
-	if err != nil {
+	if err != nil && err.Error() != "result limit reached" {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
 	}
 
+	truncated := len(matches) >= maxFindResults
+
 	return map[string]any{
-		"files": strings.Join(matches, "\n"),
-		"count": len(matches),
+		"files":     strings.Join(matches, "\n"),
+		"count":     len(matches),
+		"truncated": truncated,
 	}, nil
+}
+
+func matchGlob(pattern, rel string) bool {
+	if matched, err := filepath.Match(pattern, rel); err == nil && matched {
+		return true
+	}
+
+	if matched, err := filepath.Match(pattern, filepath.Base(rel)); err == nil && matched {
+		return true
+	}
+
+	if strings.Contains(pattern, "**") {
+		return matchDoublestar(pattern, rel)
+	}
+
+	return false
+}
+
+func matchDoublestar(pattern, rel string) bool {
+	parts := strings.SplitN(pattern, "**", 2)
+	prefix := parts[0]
+	suffix := parts[1]
+
+	if prefix != "" {
+		prefix = strings.TrimSuffix(prefix, string(filepath.Separator))
+		if !strings.HasPrefix(rel, prefix+string(filepath.Separator)) && rel != prefix {
+			return false
+		}
+		rel = strings.TrimPrefix(rel, prefix+string(filepath.Separator))
+	}
+
+	if suffix == "" {
+		return true
+	}
+	suffix = strings.TrimPrefix(suffix, string(filepath.Separator))
+
+	segments := strings.Split(rel, string(filepath.Separator))
+	for i := range segments {
+		candidate := filepath.Join(segments[i:]...)
+		if matched, err := filepath.Match(suffix, candidate); err == nil && matched {
+			return true
+		}
+	}
+
+	if matched, err := filepath.Match(suffix, filepath.Base(rel)); err == nil && matched {
+		return true
+	}
+
+	return false
 }
