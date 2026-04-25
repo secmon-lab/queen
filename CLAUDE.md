@@ -26,9 +26,10 @@ DDD + Clean Architecture. CLI -> UseCase -> Service -> Domain.
 
 ## Git & PR
 
-- Commit messages: English, one line, semantic commit format (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `ci:`)
+- Commit messages: English, single line only, no multi-line body. Semantic commit format (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`, `ci:`)
 - Example: `feat: add SARIF parser for semgrep output`
 - Do NOT add `Co-Authored-By` or any trailer lines
+- Do NOT add extended descriptions or bullet points after the first line
 - PR title and description: always in English
 
 ## Key Dependencies
