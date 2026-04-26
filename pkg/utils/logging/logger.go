@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"sync"
@@ -26,6 +25,8 @@ var (
 )
 
 func Default() *slog.Logger {
+	loggerMutex.Lock()
+	defer loggerMutex.Unlock()
 	return defaultLogger
 }
 
@@ -101,7 +102,9 @@ func New(w io.Writer, level slog.Level, format Format, stacktrace bool) *slog.Lo
 		})
 
 	default:
-		panic("unsupported log format: " + fmt.Sprintf("%d", format))
+		handler = slog.NewJSONHandler(w, &slog.HandlerOptions{
+			Level: level,
+		})
 	}
 
 	return slog.New(handler)
