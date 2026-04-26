@@ -2,11 +2,11 @@ package tool
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"path/filepath"
 	"strings"
 
+	"github.com/m-mizutani/goerr/v2"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -43,15 +43,16 @@ func (t *Find) Spec() gollem.ToolSpec {
 func (t *Find) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	pattern, _ := args["pattern"].(string)
 	if pattern == "" {
-		return nil, fmt.Errorf("pattern is required")
+		return nil, goerr.New("pattern is required")
 	}
 
 	repoAbs, err := filepath.Abs(t.repoPath)
 	if err != nil {
-		return nil, fmt.Errorf("invalid repo path: %w", err)
+		return nil, goerr.Wrap(err, "invalid repo path")
 	}
 
 	var matches []string
+	errLimitReached := goerr.New("result limit reached")
 	err = filepath.WalkDir(repoAbs, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -71,14 +72,14 @@ func (t *Find) Run(ctx context.Context, args map[string]any) (map[string]any, er
 		if matchGlob(pattern, rel) {
 			matches = append(matches, rel)
 			if len(matches) >= maxFindResults {
-				return fmt.Errorf("result limit reached")
+				return errLimitReached
 			}
 		}
 
 		return nil
 	})
-	if err != nil && err.Error() != "result limit reached" {
-		return nil, fmt.Errorf("failed to walk directory: %w", err)
+	if err != nil && err != errLimitReached {
+		return nil, goerr.Wrap(err, "failed to walk directory")
 	}
 
 	truncated := len(matches) >= maxFindResults

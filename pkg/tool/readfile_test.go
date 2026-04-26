@@ -9,7 +9,7 @@ import (
 	"github.com/secmon-lab/queen/pkg/tool"
 )
 
-const testRepoPath = "../../testdata/sample-repo"
+const testRepoPath = "../../examples/sample-repo"
 
 func TestReadFileWholeFile(t *testing.T) {
 	rf := tool.NewReadFile(testRepoPath)

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/m-mizutani/goerr/v2"
 	"github.com/m-mizutani/gollem"
 )
 
@@ -44,7 +45,7 @@ func (t *ReadFile) Spec() gollem.ToolSpec {
 func (t *ReadFile) Run(ctx context.Context, args map[string]any) (map[string]any, error) {
 	path, _ := args["path"].(string)
 	if path == "" {
-		return nil, fmt.Errorf("path is required")
+		return nil, goerr.New("path is required")
 	}
 
 	fullPath, err := t.safePath(path)
@@ -54,7 +55,7 @@ func (t *ReadFile) Run(ctx context.Context, args map[string]any) (map[string]any
 
 	f, err := os.Open(fullPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file %s: %w", path, err)
+		return nil, goerr.Wrap(err, "failed to open file", goerr.V("path", path))
 	}
 	defer f.Close()
 
@@ -81,7 +82,7 @@ func (t *ReadFile) Run(ctx context.Context, args map[string]any) (map[string]any
 		lines = append(lines, fmt.Sprintf("%d: %s", lineNum, scanner.Text()))
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read file %s: %w", path, err)
+		return nil, goerr.Wrap(err, "failed to read file", goerr.V("path", path))
 	}
 
 	return map[string]any{
@@ -93,14 +94,14 @@ func (t *ReadFile) safePath(path string) (string, error) {
 	joined := filepath.Join(t.repoPath, path)
 	abs, err := filepath.Abs(joined)
 	if err != nil {
-		return "", fmt.Errorf("invalid path: %w", err)
+		return "", goerr.Wrap(err, "invalid path")
 	}
 	repoAbs, err := filepath.Abs(t.repoPath)
 	if err != nil {
-		return "", fmt.Errorf("invalid repo path: %w", err)
+		return "", goerr.Wrap(err, "invalid repo path")
 	}
 	if !strings.HasPrefix(abs, repoAbs+string(filepath.Separator)) && abs != repoAbs {
-		return "", fmt.Errorf("path traversal detected: %s", path)
+		return "", goerr.New("path traversal detected", goerr.V("path", path))
 	}
 	return abs, nil
 }
